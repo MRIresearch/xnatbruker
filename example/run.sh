@@ -1,0 +1,1 @@
+docker run --rm -it -v /media/INFO/xnatbruker-data:/mnt -v $PWD/example:/opt/work aacazxnat/xnatbruker:0.3 python /src/uploadraw.py  /mnt/20190724_114946_BRKRAW_1_1 --workdir /mnt/work --host http://192.168.0.31 --assignment /opt/work/assignments.json --credentials /opt/work/credentials.json --project BBBUS

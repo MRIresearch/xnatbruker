@@ -1,0 +1,32 @@
+{
+    "Labels":{
+    "PROJECT_ID":"BBBUS",
+    "SUBJECT_LABEL": "_subject.parameters['SUBJECT_id']",
+    "SESSION_LABEL": "_subject.parameters['SUBJECT_study_name']"
+    },
+    "CustomForms":{
+        "14906760-70e0-4056-b9d6-e4f90b30231b": {
+        "group": [ "_subject.parameters['SUBJECT_study_comment']", "text" ],
+        "animalType": ["_subject.parameters['SUBJECT_type']", "text"],
+        "animalModel": ["_subject.parameters['SUBJECT_name_string']","text"]
+        },
+        "d8ad043c-cfe6-4cf6-8618-43c256e0f5db": {
+        "navigationScore": ["_subject.parameters['SUBJECT_version_nr']", "integer"],
+        "completedTrailFollowingTask": ["_subject.parameters['SUBJECT_study_nr']","boolean"]
+        },
+        "c7736733-7207-45b2-a2db-f05dd6b8792c":{
+        "sessionAnasthetic": ["True","boolean"]
+        }
+    },
+    "Standard":{
+        "/data/projects/{PROJECT_ID}/subjects/{SUBJECT_LABEL}":{
+           "weight": ["_subject.parameters['SUBJECT_study_weight']","float"],
+           "gender": ["_subject.parameters['SUBJECT_gender']","text"]
+        },
+        "/data/projects/{PROJECT_ID}/subjects/{SUBJECT_LABEL}/experiments/{SESSION_LABEL}":{
+           "coil": ["_subject.parameters['SUBJECT_study_comment']","text"]
+
+        }
+
+    }
+}
