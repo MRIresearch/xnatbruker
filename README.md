@@ -1,7 +1,7 @@
 # xnatbruker
 
 ## Introduction
-This application transfers raw Bruker data to an XNAT instance and stores it as an MR Session with DICOM conversion achieved  using `Dicomifier`and NIFTI files generated using `BrkRaw`. In XNAT the NIFTI files are uploaded into a resource folder called `BIDS` while the Bruker Raw Data is uploaded into a resource folder called `RAWDATA`. 
+This application transfers raw Bruker data to an XNAT instance and stores it as an MR Session. DICOM conversion is achieved using `Dicomifier` and NIFTI files are generated using `BrkRaw`. In XNAT the NIFTI files are uploaded into a resource folder called `BIDS` while the Bruker Raw Data is uploaded into a resource folder called `RAWDATA`. 
 
 
 ## Basic usage
@@ -9,8 +9,8 @@ The main Python executable is `uploadraw.py` and is called with command-line arg
 
 A minimally viable call to `uploadraw.py` is shown furher below using docker. This would create an MR session called `[XNATSessionID]` for a subject `[XNATSubjectID]` within an existing project `[XNATProjectID]` on an XNAT hosted at `[XNAT host URL]`.
 
-The workflow first creates a copy of the rawdata at `[path/to/raw/bruker/data]` within the work directory specified by `--workdir` at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/rawdata`. All subsequent processing takes place using this copy of the rawdata to avoid data corruption. 
-DICOMs for the raw data at will then be stored at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/dicoms` and a zipped version of this folder will also be stored at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/[XNATSubjectID]_[XNATSessionID]_dicoms.zip`; NIFTIs for the raw data will be stored at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/niftis`. During processing, users will be asked for their user-id and password for gaining access to the specified project in XNAT.
+The workflow first copies the rawdata initially situated at `[path/to/raw/bruker/data]` to a unique subfolder within the work directory specified by `--workdir` at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/rawdata`. All subsequent processing takes place using this copy of the rawdata to avoid data corruption. 
+DICOMs for the raw data will be stored at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/dicoms` and a zipped version of this folder will also be stored at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/[XNATSubjectID]_[XNATSessionID]_dicoms.zip`; NIFTIs for the raw data will be stored at `[path/to/work/directory]/[XNATProjectID]/[XNATSubjectID]/[XNATSessionID]/niftis`. During processing, users will be asked for their userid and password for gaining access to the specified project in XNAT. These credentials can also be passed to the script to minimize interaction and this is discussed in more detail in the **Advanced Usage** section below.
 
 ```
 docker run --rm -it -v $PWD:/mnt aacazxnat/xnatbruker:0.3 python  /src/uploadraw.py \
@@ -26,7 +26,7 @@ docker run --rm -it -v $PWD:/mnt aacazxnat/xnatbruker:0.3 python  /src/uploadraw
 A number of enhancements can be used to automate functionality and extend metadata management.
 
 ### Credentials
-User-id and passord can be passed automatically either by using the parameters `--user` and `--password` or by using a credentials json file through the `--credentials` parameter. The latter is a more secure way to do this especially if the credentials file is secured using `chmod 0400 credentials.json`
+Userid and passord can be passed automatically either by using the parameters `--user` and `--password` or by using a credentials json file through the `--credentials` parameter. The latter is a more secure way to do this especially if the credentials file is secured using `chmod 0400 credentials.json`
 
 An example of a credentials json file is shown below:
 ```
@@ -54,7 +54,7 @@ values prefixed with `_subject.parameters` are fields queried within the Bruker 
 In summary then, the workflow initially looks for labels defined directly by the parameters `--project`, `--session` and `--subject`. If these are not present then it looks in the `Labels` section of the assignments file for the keys `PROJECT_ID`, `SUBJECT_LABEL` and `SESSION_LABEL`. Finally if these are not present then it attempts to parse the `additional info` text which is stored in `Pvdataset._subject.parameters['SUBJECT_remarks']` which should be in the format `Project:XNATProjectID   Subject:XNATSubjectID   Session:XNATSessionID`
 
 ### Metadata Assignment
-In addition to the prokect, subject and session labels the assignment file can be used to update additional subject and session metadata once the session is created.
+In addition to the project, subject and session labels the assignment file can be used to update additional subject and session metadata once the session is created.
 
 #### Custom Forms
 Starting in XNAT 1.8.8 custom forms can now be conveniently created in XNAT to handle extensions to the standard XNAT datatypes. in the `CustomForms` section, these fields can be defined by specifying the `FormUUID` as a dictionary element and individual fields within that form can be defined with the source of the data and the datatype. 
@@ -109,12 +109,12 @@ docker run --rm -it -v $PWD/example:/mnt  aacazxnat/xnatbruker:0.3 python /src/u
                             --credentials /opt/work/credentials.json \
 ```                            
 
-## version 0.3 Changes
-* Credentials and Assihgnments file added to improve automation and support metadata assignments
+## Version 0.3 Changes
+* Credentials and Assignments file added to improve automation and support metadata assignments
 * Improved error handling for missing keys in metadata assignments 
 * Basic handling of duplicated data - either upoad is skipped or existing data is overwritten. This behavior is managed at a granular level using `--dup_session`, `--dup_nifti`, `--dup_raw` and `dup_metadata` parameters. 
 
-## To do for next version 0.4
+## To do for next Version 0.4
 * Provide `--cleanup` flag to clean out the `work` directory.
 * Add `Project_ID` to the `dicoms.zip` file to furtehr distinguish it.
 * Complete BIDS conversion workflow.

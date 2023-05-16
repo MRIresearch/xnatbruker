@@ -70,7 +70,8 @@ def process_labels(brkdata, assign_dict,assign_labels):
     try:
         LABELS=assign_dict["Labels"]
     except KeyError:
-        print("Labels not defined in assignment file {}".format(assignment))
+        print("Labels not defined in assignment dict {}".format(str(assign_dict)))
+        return assign_labels
 
     for itemkey,itemvalue in LABELS.items():
         if ('_subject.parameters' in itemvalue):
@@ -79,7 +80,7 @@ def process_labels(brkdata, assign_dict,assign_labels):
                 brkvalue = brkdata._subject.parameters[brkkey]
                 loadParams(assign_labels,itemkey,str(brkvalue))
             except Exception:
-                print("Brkdata references not entered properly in {}. Missing matching '[ ]'".format(assignment))
+                print("Brkdata references not entered properly in {}. Missing matching '[ ]'".format(str(assign_dict)))
         else:
             loadParams(assign_labels,itemkey,str(itemvalue))
 
@@ -93,6 +94,7 @@ def process_routing(brkdata, assign_labels):
         ROUTING=brkdata._subject.parameters['SUBJECT_remarks']
     except Exception:
         print("problem getting routing information from SUBJECT_remarks")
+        return assign_labels
 
     if "Project:" in ROUTING:
         PROJECT_ID=ROUTING.split("Project:")[1].strip().split(' ')[0]
@@ -114,6 +116,7 @@ def substitute_labels(querystring, querylabels,assign_labels):
             querystring = querystring.replace(label,labelvalue)
         except Exception:
             print("problem obtaining label {}".format(label))
+            return None
 
     return querystring
 
@@ -127,7 +130,8 @@ def process_xnat_standard(connection, assign_dict, brkdata, assign_labels,SESSIO
     try:
         STANDARD=assign_dict["Standard"]
     except KeyError:
-        print("Standard not defined in assignment file {}".format(assignment))
+        print("Standard not defined in assignment dict {}".format(str(assign_dict)))
+        return
 
     for itemkey,itemvalue in STANDARD.items():
         for varkey,varvalue in itemvalue.items():
@@ -172,7 +176,7 @@ def process_xnat_standard(connection, assign_dict, brkdata, assign_labels,SESSIO
                 # find variables in itemkey
                 query_labels = re.findall(r'\{.*?\}',itemkey)
                 apistring=substitute_labels(itemkey,query_labels,assign_labels)
-                if SESSION_EXISTS and dupaction == "overwrite":
+                if SESSION_EXISTS and dupaction == "overwrite" and apistring is not None:
                     resp=connection.get(apistring,query={"format": "json"})
                     respjson=resp.json()
                     overwriteval=getParams(respjson['items'][0]['children'][0]['items'][0]['data_fields'],varkey)
@@ -181,7 +185,8 @@ def process_xnat_standard(connection, assign_dict, brkdata, assign_labels,SESSIO
                     if overwriteval is not None:
                         print("Session already exists; the action {} will override values. in the database\nThe variable = {}:\nold value: {}\n will be overwritten with:\nnew value: {}\n".format(apistring + "/" + varkey,varkey,str(overwriteval),str(brkvalue)))
 
-                resp=connection.put(apistring,query={varkey: brkvalue})
+                if apistring is not None:
+                    resp=connection.put(apistring,query={varkey: brkvalue})
 
 
 def process_xnat_custom(connection, assign_dict, brkdata, assign_labels, project, subject, session,SESSION_EXISTS,dupaction):
@@ -194,7 +199,8 @@ def process_xnat_custom(connection, assign_dict, brkdata, assign_labels, project
     try:
         CUSTOM=assign_dict["CustomForms"]
     except KeyError:
-        print("Custom not defined in assignment file {}".format(assignment))
+        print("Custom not defined in assignment dict {}".format(str(assign_dict)))
+        return
 
     for itemkey,itemvalue in CUSTOM.items():
         customdict={}
