@@ -241,6 +241,8 @@ def process_xnat_custom(connection, assign_dict, brkdata, assign_labels, project
                 customdict[itemkey][varkey]=brkvalue
 
         # find Custom form and variables for project
+        apistring=None
+        cfieldjson=None
         resp=connection.get('/xapi/customforms',query={'projectId': project})
         cform_json=resp.json()
         for cform in cform_json:
@@ -262,11 +264,12 @@ def process_xnat_custom(connection, assign_dict, brkdata, assign_labels, project
                     for cfield_key, cfield_values in cfieldjson[itemkey].items():
                         if cfield_key not in customdict[itemkey].keys():
                             customdict[itemkey][cfield_key]=cfield_values
-
-        if SESSION_EXISTS and dupaction == "overwrite":
-            print("Session already exists. variables for form {}:\n{}\n will be overwritten with:\n{}\n.".format(itemkey, str(cfieldjson[itemkey]),str(customdict)))
-
-        resp=connection.put(apistring,json=customdict)
+        if apistring is not None:
+            if SESSION_EXISTS and dupaction == "overwrite" and itemkey in cfieldjson.keys():
+                print("Session already exists. variables for form {}:\n{}\n will be overwritten with:\n{}\n.".format(itemkey, str(cfieldjson[itemkey]),str(customdict)))
+            resp=connection.put(apistring,json=customdict)
+        else:
+            print("form {} not available for this project {}. Metadata update not supported.".format(itemkey,project))
 
 
 def dicomify(rawdatadir, dicomdir, zipfile, session):
