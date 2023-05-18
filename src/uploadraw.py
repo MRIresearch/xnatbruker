@@ -91,7 +91,7 @@ def process_routing(brkdata, assign_labels):
     ROUTING=''
     # Check for subject remarks which may contain routing information
     try:
-        ROUTING=brkdata._subject.parameters['SUBJECT_remarks']
+        ROUTING=brkdata._subject.parameters['SUBJECT_study_comment']
     except Exception:
         print("problem getting routing information from SUBJECT_remarks")
         return assign_labels
@@ -449,21 +449,25 @@ def main():
     else:
         workdir = os.path.abspath(args.workdir)
 
-    assignment = os.path.abspath(args.assignment)
     assign_dict=None
-    if os.path.exists(assignment):
-        with open(assignment, 'r') as infile:
-            assign_dict = json.load(infile)
+    if args.assignment is not None:
+        assignment = os.path.abspath(args.assignment)
+        if os.path.exists(assignment):
+            with open(assignment, 'r') as infile:
+                assign_dict = json.load(infile)
 
     cred_dict = None
     cred_user = None 
     cred_pwd = None
-    credentials = os.path.abspath(args.credentials)
-    if os.path.exists(credentials):
-        with open(credentials, 'r') as infile:
-            cred_dict = json.load(infile)
-            cred_user = getParams(cred_dict,"user")
-            cred_pwd = getParams(cred_dict,"password")
+
+
+    if args.credentials is not None:
+        credentials = os.path.abspath(args.credentials)
+        if os.path.exists(credentials):
+            with open(credentials, 'r') as infile:
+                cred_dict = json.load(infile)
+                cred_user = getParams(cred_dict,"user")
+                cred_pwd = getParams(cred_dict,"password")
 
     if args.user is not None:
         user = args.user
