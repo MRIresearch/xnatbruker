@@ -51,7 +51,7 @@ Rather than pass the Subject, Session and Project Labels directly it is also pos
 
 values prefixed with `_subject.parameters` are fields queried within the Bruker Raw data. If these labels are not defined in the assignment file then the code will also look within the field `_subject.parameters['SUBJECT_remarks']` which is actually the `additional info` field that is available on the bruker console. It will be expecting a string in the form `Project:XNATProjectID   Subject:XNATSubjectID   Session:XNATSessionID` from which the labels can be determined
 
-In summary then, the workflow initially looks for labels defined directly by the parameters `--project`, `--session` and `--subject`. If these are not present then it looks in the `Labels` section of the assignments file for the keys `PROJECT_ID`, `SUBJECT_LABEL` and `SESSION_LABEL`. Finally if these are not present then it attempts to parse the `additional info` text which is stored in `Pvdataset._subject.parameters['SUBJECT_remarks']` which should be in the format `Project:XNATProjectID   Subject:XNATSubjectID   Session:XNATSessionID`
+In summary then, the workflow initially looks for labels defined directly by the parameters `--project`, `--session` and `--subject`. If these are not present then it looks in the `Labels` section of the assignments file for the keys `PROJECT_ID`, `SUBJECT_LABEL` and `SESSION_LABEL`. Finally if these are not present then it attempts to parse the `additional info` text which is stored in `Pvdataset._subject.parameters['SUBJECT_study_comments']` which should be in the format `Project:XNATProjectID   Subject:XNATSubjectID   Session:XNATSessionID`
 
 ### Metadata Assignment
 In addition to the project, subject and session labels the assignment file can be used to update additional subject and session metadata once the session is created.
@@ -116,6 +116,6 @@ docker run --rm -it -v $PWD/example:/mnt  aacazxnat/xnatbruker:0.3 python /src/u
 
 ## To do for next Version 0.4
 * Provide `--cleanup` flag to clean out the `work` directory.
-* Add `Project_ID` to the `dicoms.zip` file to furtehr distinguish it.
-* Complete BIDS conversion workflow.
+* Add `Project_ID` to the `dicoms.zip` file to further distinguish it.
+* Complete the BIDS conversion workflow.
 * Incorporate code to convert DWI bvecs correctly.
