@@ -8,7 +8,7 @@ import shutil
 import json
 import re
 
-__version__=0.3
+__version__=0.4
 
 def getParams(pardict, key):
     if key is not None and pardict is not None:
@@ -39,9 +39,9 @@ def get_parser():
     parser.add_argument("--project", help="Project", required=False)
     parser.add_argument("--user", help="user", required=False)
     parser.add_argument("--password", help="password", required=False)    
-    parser.add_argument('--version', action='version', version='%(prog)s 1')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('--dup_session', action='store',
-        help='handle session duplicates. skip or overwrite', default="skip")
+        help='handle session duplicates. skip, overwrite or append', default="append")
     parser.add_argument('--dup_nifti', action='store',
         help='handle nifti session duplicates. skip or overwrite', default="skip")
     parser.add_argument('--dup_raw', action='store',
@@ -52,7 +52,11 @@ def get_parser():
         help='Can create a project if it doesnt exist. Default is false', default="N")
     return parser
 
-def initialize_labels(project, subject, session):
+def initialize_labels():
+    assign_labels={}
+    return assign_labels
+
+def overwrite_labels(project, subject, session):
     assign_labels={}
     if project is not None:
         loadParams(assign_labels,"PROJECT_ID",project)
@@ -286,19 +290,11 @@ def dicomify(rawdatadir, dicomdir, zipfile, session):
     shutil.make_archive(zipfile , 'zip', dicomdir)
     print("Dicoms Archived for MR Session {} and ready for upload".format(session))
 
-def create_session(connection, zipfile,project, subject,session, SESSION_EXISTS, dupaction):
-    if SESSION_EXISTS and dupaction == 'skip':
-        print("Session already exists. Will not be recreating.")
-        session_inst = connection.projects[project].subjects[subject].experiments[session]
-        return session_inst
+def create_session(connection, zipfile,project, subject,session, mrsession_inst):
 
-    if SESSION_EXISTS and dupaction == 'overwrite':
-        connection.delete("/data/projects/{}/subjects/{}/experiments/{}".format(project,subject,session))
-        print ("Deleting the existing session {}".format(session))
-
-    new_session = connection.services.import_(zipfile + '.zip', overwrite='delete', project=project,subject=subject,experiment=session)
+    new_session = connection.services.import_(zipfile + '.zip', quarantine=False, overwrite='delete', project=project,subject=subject,experiment=session, import_handler="DICOM-zip")
     session_inst = connection.projects[project].experiments[session]
-    print("MR Session {} created on XNAT and Dicoms uploaded".format(session))
+    print(f"MR Session {session_inst} for label {session} created on XNAT and Dicoms uploaded")
     return session_inst
 
 def upload_nifti(connection, niftidir,currdir,rootrawdatadir, session_inst, NIFTI_EXISTS, dupaction):
@@ -346,12 +342,12 @@ def upload_to_xnat(brukerdir,workdir,host,session_arg,subject_arg,project_arg,us
     print("upload to xnat started.")
     print("Summary of session upload:")
     rawdataset.info()
-
-    assign_labels =initialize_labels(project_arg,subject_arg,session_arg)
     
+    assign_labels =initialize_labels()
     if assign_dict is not None:
         assign_labels=process_labels(rawdataset,assign_dict,assign_labels)
     assign_labels=process_routing(rawdataset,assign_labels)
+    assign_labels =overwrite_labels(project_arg,subject_arg,session_arg)
 
     project = None
     subject = None
@@ -392,13 +388,33 @@ def upload_to_xnat(brukerdir,workdir,host,session_arg,subject_arg,project_arg,us
                 subject_inst = connection.classes.SubjectData(parent=project_inst, label=subject)
        
             # create MR session
+            SESSION_SKIP=False
             try:
                 mrsession_inst = connection.projects[project].subjects[subject].experiments[session]
-                print("MR Session {} already exists. This upload will be cancelled.".format(session))
-                SESSION_EXISTS=True
+
+
+                if dup_session == 'skip':
+                    print(f"MR Session {mrsession_inst} for label {session} already exists and duplicate action is set to skip. Session will not be created - Dicoms will not be uploded. You can change default duplicate action for sessions using --dup_session")
+                    SESSION_SKIP = True
+                elif dup_session =='overwrite':
+                    print(f"MR Session {mrsession_inst} for label {session} already exists and duplicate action is set to delete. You can change default duplicate action for sessions using --dup_session")
+                    connection.delete("/data/projects/{}/subjects/{}/experiments/{}".format(project,subject,session))
+                    print ("Deleting the existing session {}".format(session))
+                    print("MR Session {} doesn't exist. This will be created".format(session))
+                    mrsession_inst = connection.classes.MrSessionData(parent=subject_inst, label=session)
+                else:
+                    import pytz
+                    datetime_utc = pytz.timezone("UTC").localize(datetime.datetime.now())
+                    datetime_mtc = datetime_utc.astimezone(pytz.timezone("MST"))
+                    datestamp = datetime_mtc.strftime("%Y-%m-%d-%H-%M-%S")
+                    new_session_label = session + "_" + datestamp
+                    print(f"MR Session {mrsession_inst} for label {session} already exists. Session will be uploaded to a new session_label {new_session_label}.")
+                    mrsession_inst = connection.classes.MrSessionData(parent=subject_inst, label=new_session_label)
+                    session = new_session_label
+                
             except Exception as e:
                 print("MR Session {} doesn't exist. This will be created".format(session))
-                SESSION_EXISTS=False
+                mrsession_inst = connection.classes.MrSessionData(parent=subject_inst, label=session)
                 
             dicomdir=os.path.join(workdir,project,subject,session,'dicoms')
             if not os.path.exists(dicomdir):
@@ -407,7 +423,10 @@ def upload_to_xnat(brukerdir,workdir,host,session_arg,subject_arg,project_arg,us
             dicomify(rawdatadir, dicomdir, zipfile, session)
 
             # Create Session
-            session_inst=create_session(connection, zipfile,project, subject,session, SESSION_EXISTS,dup_session)
+            if not SESSION_SKIP:
+                session_inst=create_session(connection, zipfile,project, subject,session, mrsession_inst)
+            else:
+                session_inst = mrsession_inst
 
             # create and upload niftis
             try:
@@ -493,6 +512,8 @@ def main():
     dup_metadata = args.dup_metadata
 
     additionalArgs = unknown_args if unknown_args is not None else []
+
+    print(f"Running {__file__} v{__version__}")
 
     upload_to_xnat(brukerdir,workdir,host,session,subject,project,user,password,projcreate,assign_dict,dup_session,dup_nifti,dup_raw, dup_metadata, additionalArgs)
 

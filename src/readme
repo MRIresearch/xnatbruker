@@ -1,5 +1,6 @@
 aacazxnat/xnatbruker 
 Container for XNAT and Bruker integration:
+	*	xnat==0.4.3
 	*	nipype==1.8.3
 	*	jupyterlab==3.4.4
 	*	notebook==6.4.12

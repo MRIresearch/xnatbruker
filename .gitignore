@@ -1,6 +1,8 @@
 # Custom
 example/debug.sh
 example/assignments_debug.json
+debug.sh
+test.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
