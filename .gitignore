@@ -3,6 +3,9 @@ example/debug.sh
 example/assignments_debug.json
 debug.sh
 test.sh
+credtest.json
+data/
+nifti/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

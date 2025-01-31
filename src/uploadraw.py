@@ -8,7 +8,7 @@ import shutil
 import json
 import re
 
-__version__=0.4
+__version__=0.5
 
 def getParams(pardict, key):
     if key is not None and pardict is not None:
@@ -293,7 +293,9 @@ def dicomify(rawdatadir, dicomdir, zipfile, session):
 def create_session(connection, zipfile,project, subject,session, mrsession_inst):
 
     new_session = connection.services.import_(zipfile + '.zip', quarantine=False, overwrite='delete', project=project,subject=subject,experiment=session, import_handler="DICOM-zip")
-    session_inst = connection.projects[project].experiments[session]
+    # With xnat 0.6.2 this causes errors - just use mrsession_inst
+    #session_inst = connection.projects[project].experiments[session]
+    session_inst = mrsession_inst
     print(f"MR Session {session_inst} for label {session} created on XNAT and Dicoms uploaded")
     return session_inst
 
@@ -301,22 +303,22 @@ def upload_nifti(connection, niftidir,currdir,rootrawdatadir, session_inst, NIFT
 
     if NIFTI_EXISTS and dupaction == 'skip':
         print("Nifti data already already exists in session. Will not be recreating.")
-        bids_resource = session_inst.resources['BIDS']
-        return bids_resource
+        nifti_resource = session_inst.resources['NIFTI']
+        return nifti_resource
 
     if NIFTI_EXISTS and dupaction == 'overwrite':
-        connection.delete("/data/experiments/{}/resources/{}".format(session_inst.id,'BIDS'))
-        print ("Deleting the existing resource {} for session {}".format('BIDS',session_inst.label))
+        connection.delete("/data/experiments/{}/resources/{}".format(session_inst.id,'NIFTI'))
+        print ("Deleting the existing resource {} for session {}".format('NIFTI',session_inst.label))
 
     os.chdir(niftidir)
-    to_niiall_command="brkraw tonii_all -b {}".format(rootrawdatadir).split()
+    to_niiall_command="brkraw tonii {}".format(rootrawdatadir).split()
     print(subprocess.check_output(to_niiall_command))
     os.chdir(currdir)
-    bids_resource = connection.classes.ResourceCatalog(parent=session_inst,label="BIDS")
-    bids_resource.upload_dir(directory = niftidir,overwrite = True, method = 'tgz_file')
-    print("BIDS conversion for MR Session {} generated using brkraw toni_all and uploaded to XNAT".format(session_inst.label))
+    nifti_resource = connection.classes.ResourceCatalog(parent=session_inst,label="NIFTI")
+    nifti_resource.upload_dir(directory = niftidir,overwrite = True, method = 'tgz_file')
+    print("NIFTI conversion for MR Session {} generated using brkraw toni_all and uploaded to XNAT".format(session_inst.label))
 
-    return bids_resource
+    return nifti_resource
 
 def upload_raw(connection, niftidir,currdir,rawdatadir, session_inst, RAW_EXISTS, dupaction):
 
@@ -430,17 +432,17 @@ def upload_to_xnat(brukerdir,workdir,host,session_arg,subject_arg,project_arg,us
 
             # create and upload niftis
             try:
-                bids_resource = session_inst.resources['BIDS']
+                nifti_resource = session_inst.resources['NIFTI']
                 NIFTI_EXISTS=True
             except Exception as e:
-                print("MR NIFTI Resource {} doesn't exist for session {}. This will be created".format('BIDS',session))
+                print("MR NIFTI Resource {} doesn't exist for session {}. This will be created".format('NIFTI',session))
                 NIFTI_EXISTS=False
 
             currdir=os.getcwd()
             niftidir=os.path.join(workdir,project,subject,session,'niftis')
             if not os.path.exists(niftidir):
                 os.makedirs(niftidir)
-            bids_resource = upload_nifti(connection, niftidir,currdir,rootrawdatadir,session_inst, NIFTI_EXISTS,dup_nifti)
+            nifti_resource = upload_nifti(connection, niftidir,currdir,rootrawdatadir,session_inst, NIFTI_EXISTS,dup_nifti)
             
             # upload raw data as tgz file
             try:

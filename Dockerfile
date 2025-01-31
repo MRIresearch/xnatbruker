@@ -44,16 +44,16 @@ WORKDIR /opt/tmp
 ENV MINICONDA_HOME=/opt/miniconda
 ENV PATH=${MINICONDA_HOME}/bin:${PATH}
 
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py37_23.1.0-1-Linux-x86_64.sh && \
-    chmod +x Miniconda3-py37_23.1.0-1-Linux-x86_64.sh && \
-    /bin/bash ./Miniconda3-py37_23.1.0-1-Linux-x86_64.sh -b -p ${MINICONDA_HOME} -f && \
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py311_24.11.1-0-Linux-x86_64.sh && \
+    chmod +x Miniconda3-py311_24.11.1-0-Linux-x86_64.sh && \
+    /bin/bash ./Miniconda3-py311_24.11.1-0-Linux-x86_64.sh -b -p ${MINICONDA_HOME} -f && \
     conda install -y pip && \
-    conda install -y -c conda-forge dicomifier && \
+    conda install -y -c conda-forge dicomifier==2.5.3 && \
     pip install nipype==1.8.3 \
                 jupyterlab==3.4.4 \ 
                 notebook==6.4.12 \
-                git+https://github.com/brkraw/bruker.git@0.3.5 \
-                xnat==0.4.3
+                brkraw==0.3.11 \
+                xnat==0.6.2
 
 ############################
 # HOME DIRECTORY
